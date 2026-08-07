@@ -1,0 +1,10 @@
+*.log
+*.pdb
+*.bak
+*.backup-*
+ReShade.ini
+ReShadePreset.ini
+dxgi.dll
+nvngx_dlss.dll
+graphify-out/
+build/

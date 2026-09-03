@@ -1,4 +1,6 @@
 #include "./shared.h"
+#include "./luma_neutwo.hlsl"
+#include "./psychov.hlsl"
 
 struct postfx_luminance_autoexposure_t {
   float EngineLuminanceFactor;
@@ -217,35 +219,60 @@ void main(float4 v0 : INTERP0, float4 v1 : SV_POSITION0,
   }
 
   const float3 untonemapped = max(0.f, r0.xyz) * v0.zzz;
-  float3 neutral_sdr = ApplyVanillaToneCurve(untonemapped);
+  float3 hdr_color;
+  if (RENODX_TONE_MAP_TYPE == DISHONORED2_TONE_MAP_TYPE_LUMA_NEUTWO) {
+    hdr_color = dishonored2::luma_neutwo::ToneMapWithLUT(
+        ro_tonemapping_finalcolorcube,
+        smp_linearclamp_s,
+        untonemapped,
+        cb_postfx_tonemapping_tonemappingparms.x,
+        cb_postfx_tonemapping_tonemappingcoeffs0,
+        cb_postfx_tonemapping_tonemappingcoeffs1,
+        cb_env_tonemapping_gamma_brightness,
+        shader_injection.override_black_clip != 0.f);
+  } else {
+    float3 neutral_sdr = ApplyVanillaToneCurve(untonemapped);
 
-  float3 lut_coordinates = neutral_sdr * 31.f + 0.5f;
-  lut_coordinates *= 0.03125f;
-  float3 graded_sdr = ro_tonemapping_finalcolorcube.SampleLevel(
-                                                       smp_linearclamp_s, lut_coordinates, 0.f)
-                          .xyz;
-  graded_sdr = ApplyGammaBrightness(graded_sdr);
+    float3 lut_coordinates = neutral_sdr * 31.f + 0.5f;
+    lut_coordinates *= 0.03125f;
+    float3 graded_sdr = ro_tonemapping_finalcolorcube.SampleLevel(
+                                                         smp_linearclamp_s, lut_coordinates, 0.f)
+                            .xyz;
+    graded_sdr = ApplyGammaBrightness(graded_sdr);
 
-  if (shader_injection.override_black_clip != 0.f
-      && RENODX_TONE_MAP_TYPE != 0.f) {
-    const float3 neutral_black = ApplyVanillaToneCurve(0.f);
-    const float3 black_lut_coordinates =
-        (neutral_black * 31.f + 0.5f) * 0.03125f;
-    float3 graded_black = ro_tonemapping_finalcolorcube.SampleLevel(
-                                                           smp_linearclamp_s,
-                                                           black_lut_coordinates,
-                                                           0.f)
-                              .xyz;
-    graded_black = ApplyGammaBrightness(graded_black);
+    if (shader_injection.override_black_clip != 0.f
+        && RENODX_TONE_MAP_TYPE != 0.f) {
+      const float3 neutral_black = ApplyVanillaToneCurve(0.f);
+      const float3 black_lut_coordinates =
+          (neutral_black * 31.f + 0.5f) * 0.03125f;
+      float3 graded_black = ro_tonemapping_finalcolorcube.SampleLevel(
+                                                             smp_linearclamp_s,
+                                                             black_lut_coordinates,
+                                                             0.f)
+                                .xyz;
+      graded_black = ApplyGammaBrightness(graded_black);
 
-    neutral_sdr = Dishonored2RemoveBlackFloor(neutral_sdr, neutral_black);
-    graded_sdr = Dishonored2RemoveBlackFloor(graded_sdr, graded_black);
+      neutral_sdr = Dishonored2RemoveBlackFloor(neutral_sdr, neutral_black);
+      graded_sdr = Dishonored2RemoveBlackFloor(graded_sdr, graded_black);
+    }
+
+    if (dishonored2::psychov::IsActive()) {
+      hdr_color = dishonored2::psychov::ToneMap(
+          untonemapped,
+          graded_sdr,
+          neutral_sdr,
+          cb_postfx_tonemapping_tonemappingparms.x,
+          cb_postfx_tonemapping_tonemappingcoeffs0,
+          cb_postfx_tonemapping_tonemappingcoeffs1,
+          cb_env_tonemapping_gamma_brightness,
+          shader_injection.override_black_clip != 0.f);
+    } else {
+      hdr_color = RENODX_TONE_MAP_TYPE == 0.f
+                      ? graded_sdr
+                      : renodx::draw::ToneMapPass(
+                            untonemapped, graded_sdr, neutral_sdr);
+    }
   }
-
-  const float3 hdr_color = RENODX_TONE_MAP_TYPE == 0.f
-                               ? graded_sdr
-                               : renodx::draw::ToneMapPass(
-                                     untonemapped, graded_sdr, neutral_sdr);
   o0.rgb = renodx::draw::RenderIntermediatePass(hdr_color);
   o0.a = 1.f;
 }

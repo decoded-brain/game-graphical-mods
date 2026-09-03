@@ -4,6 +4,8 @@
  */
 
 #include "./shared.h"
+#include "./luma_neutwo.hlsl"
+#include "./psychov.hlsl"
 
 struct AutoExposureData {
   float engine_luminance_factor;
@@ -193,23 +195,45 @@ void main(
   }
 
   const float3 untonemapped = max(scene_color, 0.f) * interpolant.z;
-  float3 neutral_sdr = ApplyVanillaToneCurve(untonemapped);
-  float3 graded_sdr = ApplyGammaBrightness(neutral_sdr);
-
-  if (shader_injection.override_black_clip != 0.f
-      && RENODX_TONE_MAP_TYPE != 0.f) {
-    const float3 neutral_black = ApplyVanillaToneCurve(0.f);
-    const float3 graded_black = ApplyGammaBrightness(neutral_black);
-    neutral_sdr = Dishonored2RemoveBlackFloor(neutral_sdr, neutral_black);
-    graded_sdr = Dishonored2RemoveBlackFloor(graded_sdr, graded_black);
-  }
-
-  float3 final_color = graded_sdr;
-  if (RENODX_TONE_MAP_TYPE != 0.f) {
-    final_color = renodx::draw::ToneMapPass(
+  float3 final_color;
+  if (RENODX_TONE_MAP_TYPE == DISHONORED2_TONE_MAP_TYPE_LUMA_NEUTWO) {
+    final_color = dishonored2::luma_neutwo::ToneMap(
         untonemapped,
-        graded_sdr,
-        neutral_sdr);
+        tone_map_parameters.x,
+        tone_map_coefficients_low,
+        tone_map_coefficients_high,
+        gamma_brightness,
+        shader_injection.override_black_clip != 0.f);
+  } else {
+    float3 neutral_sdr = ApplyVanillaToneCurve(untonemapped);
+    float3 graded_sdr = ApplyGammaBrightness(neutral_sdr);
+
+    if (shader_injection.override_black_clip != 0.f
+        && RENODX_TONE_MAP_TYPE != 0.f) {
+      const float3 neutral_black = ApplyVanillaToneCurve(0.f);
+      const float3 graded_black = ApplyGammaBrightness(neutral_black);
+      neutral_sdr = Dishonored2RemoveBlackFloor(neutral_sdr, neutral_black);
+      graded_sdr = Dishonored2RemoveBlackFloor(graded_sdr, graded_black);
+    }
+
+    if (dishonored2::psychov::IsActive()) {
+      final_color = dishonored2::psychov::ToneMap(
+          untonemapped,
+          graded_sdr,
+          neutral_sdr,
+          tone_map_parameters.x,
+          tone_map_coefficients_low,
+          tone_map_coefficients_high,
+          gamma_brightness,
+          shader_injection.override_black_clip != 0.f);
+    } else if (RENODX_TONE_MAP_TYPE != 0.f) {
+      final_color = renodx::draw::ToneMapPass(
+          untonemapped,
+          graded_sdr,
+          neutral_sdr);
+    } else {
+      final_color = graded_sdr;
+    }
   }
 
   output_color = float4(renodx::draw::RenderIntermediatePass(final_color), 1.f);

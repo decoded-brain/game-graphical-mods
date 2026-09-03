@@ -15,3 +15,5 @@ The addon is the complete UE Extended binary, not a standalone two-file patch. O
 - Based on `marat569/renodx` and RenoDX UE Extended.
 - Release binary SHA-256: `235ECA537B0BE4D8AD707D9138B7584C7387D1F9F5D13919E46D1B63CC8A5A0F`.
 - Contributors to the relevant source history: decoded-brain and Marat (`marat569`); framework credits also include Carlos Lopez Jr., Pumbo and RenoDX contributors.
+
+The Frostpunk-specific branch and both mirrored game-specific source blobs are unchanged from v0.1.0. The same verified addon binary is repackaged in v0.2.0 so the collection has one current release.

@@ -6,6 +6,10 @@
 #ifndef SRC_GAMES_DISHONORED2_SHARED_H_
 #define SRC_GAMES_DISHONORED2_SHARED_H_
 
+#define DISHONORED2_TONE_MAP_TYPE_LUMA_NEUTWO 4.f
+#define DISHONORED2_TONE_MAP_TYPE_PSYCHOV17   5.f
+#define DISHONORED2_TONE_MAP_TYPE_PSYCHOV22   6.f
+
 struct ShaderInjectData {
   float peak_white_nits;
   float diffuse_white_nits;
@@ -41,6 +45,11 @@ struct ShaderInjectData {
   float lens_dirt_amount;
   float sharpening;
   float film_grain;
+
+  float psychov_cone_response;
+  float psychov_exposure_match;
+  float psychov_vanilla_slope;
+  float psychov_padding;
 };
 
 #ifndef __cplusplus
@@ -71,6 +80,9 @@ cbuffer shader_injection : register(b13) {
 #define DISHONORED2_LENS_DIRT_AMOUNT         shader_injection.lens_dirt_amount
 #define DISHONORED2_SHARPENING                shader_injection.sharpening
 #define DISHONORED2_FILM_GRAIN                shader_injection.film_grain
+#define DISHONORED2_PSYCHOV_CONE_RESPONSE     shader_injection.psychov_cone_response
+#define DISHONORED2_PSYCHOV_EXPOSURE_MATCH    shader_injection.psychov_exposure_match
+#define DISHONORED2_PSYCHOV_VANILLA_SLOPE     shader_injection.psychov_vanilla_slope
 // VoidEngine's late Iggy UI renders through non-sRGB views and intentionally
 // blends in gamma space. Keep the FP16 intermediate sRGB-encoded until every UI
 // draw is complete, then decode once in the swap-chain proxy for HDR output.

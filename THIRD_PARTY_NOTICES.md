@@ -12,6 +12,20 @@ The compiled addons use the [ReShade](https://reshade.me/) Add-on API. ReShade i
 
 The optional Graphical Upgrade companion was originally created by [garamond13](https://github.com/garamond13/ReShade-shaders/tree/main/Addons/Dishonored2GraphicalUpgrade). Its source and binary are not redistributed because the inspected upstream checkout does not contain an explicit repository license and its local build tree contains NVIDIA proprietary SDK headers.
 
+## Luma Framework Dishonored 2 tone mapping
+
+The Dishonored 2 extended-vanilla curve, Neutwo LUT bridge and final Neutwo/BT.2020 tone map are adapted from the Luma Framework Dishonored 2 project.
+
+Copyright (c) 2024+ Filippo Tarpini
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+Addenda: Any reuse of this code shall include the names of the authors or of the project. Commercial usage is possible but only after asking permission to the authors.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
 ## Detroit: Become Human Vulkan base and ultrawide research
 
 The Detroit Vulkan work is based on RenoDX Vulkan support from [RenoDX PR #564](https://github.com/clshortfuse/renodx/pull/564). Ultrawide signatures and scaling were independently implemented using research published by Rose and documented on [PCGamingWiki](https://community.pcgamingwiki.com/files/file/1721-detroit-become-human-ultrawide-multimonitor-mod/). No trainer or Cheat Engine payload is included.

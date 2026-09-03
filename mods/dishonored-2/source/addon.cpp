@@ -23,6 +23,22 @@ namespace {
 ShaderInjectData shader_injection = {};
 float current_settings_mode = 0.f;
 
+bool UsesRenoDXCreativeGrading() {
+  return shader_injection.tone_map_type
+         != DISHONORED2_TONE_MAP_TYPE_LUMA_NEUTWO;
+}
+
+bool UsesPsychoV() {
+  return shader_injection.tone_map_type
+             == DISHONORED2_TONE_MAP_TYPE_PSYCHOV17
+         || shader_injection.tone_map_type
+                == DISHONORED2_TONE_MAP_TYPE_PSYCHOV22;
+}
+
+bool UsesRenoDXExtendedControls() {
+  return UsesRenoDXCreativeGrading() && !UsesPsychoV();
+}
+
 bool OnToneMapDraw(reshade::api::command_list* cmd_list) {
   auto render_targets = renodx::utils::swapchain::GetRenderTargets(cmd_list);
   bool changed = false;
@@ -102,8 +118,18 @@ renodx::utils::settings::Settings settings = {
         .can_reset = true,
         .label = "Tone Mapper",
         .section = "Tone Mapping",
-        .tooltip = "Selects the HDR tone mapper.",
-        .labels = {"Vanilla", "None", "ACES", "RenoDRT"},
+        .tooltip = "Selects the HDR tone mapper. Luma Neutwo extends the vanilla "
+                   "curve; PsychoV uses perceptual cone-response mapping while "
+                   "preserving Dishonored 2's scene grading.",
+        .labels = {
+            "Vanilla",
+            "None",
+            "ACES",
+            "RenoDRT",
+            "Luma Neutwo",
+            "PsychoV-17",
+            "PsychoV-22",
+        },
     },
     peak_nits_setting = new renodx::utils::settings::Setting{
         .key = "ToneMapPeakNits",
@@ -146,6 +172,42 @@ renodx::utils::settings::Settings settings = {
         .tooltip = "Matches the SDR look before expanding highlights.",
         .labels = {"Off", "Gamma 2.2", "BT.1886"},
         .is_visible = []() { return current_settings_mode >= 1.f; },
+    },
+    new renodx::utils::settings::Setting{
+        .key = "ColorGradeConeResponse",
+        .binding = &shader_injection.psychov_cone_response,
+        .default_value = 50.f,
+        .label = "Cone Response",
+        .section = "Color Grading",
+        .tooltip = "Controls the PsychoV cone response shaping.",
+        .min = 0.f,
+        .max = 100.f,
+        .parse = [](float value) { return value * 0.02f; },
+        .is_visible = UsesPsychoV,
+    },
+    new renodx::utils::settings::Setting{
+        .key = "ToneMapPsychoVExposureMatch",
+        .binding = &shader_injection.psychov_exposure_match,
+        .value_type = renodx::utils::settings::SettingValueType::BOOLEAN,
+        .default_value = 1.f,
+        .label = "Exposure Match",
+        .section = "Color Grading",
+        .tooltip = "Matches PsychoV's 18% gray anchor to Dishonored 2's "
+                   "neutral tone-curve output.",
+        .is_visible = UsesPsychoV,
+    },
+    new renodx::utils::settings::Setting{
+        .key = "ToneMapPsychoVVanillaHDRSlope",
+        .binding = &shader_injection.psychov_vanilla_slope,
+        .default_value = 100.f,
+        .label = "Vanilla HDR Slope",
+        .section = "Color Grading",
+        .tooltip = "Blends PsychoV cone response from native to Dishonored 2's "
+                   "neutral tone-curve slope.",
+        .min = 0.f,
+        .max = 100.f,
+        .parse = [](float value) { return value * 0.01f; },
+        .is_visible = UsesPsychoV,
     },
     new renodx::utils::settings::Setting{
         .key = "OverrideBlackClip",
@@ -217,6 +279,7 @@ renodx::utils::settings::Settings settings = {
         .section = "Color Grading",
         .max = 2.f,
         .format = "%.2f",
+        .is_enabled = UsesRenoDXCreativeGrading,
         .is_visible = []() { return current_settings_mode >= 1.f; },
     },
     new renodx::utils::settings::Setting{
@@ -226,6 +289,7 @@ renodx::utils::settings::Settings settings = {
         .label = "Highlights",
         .section = "Color Grading",
         .max = 100.f,
+        .is_enabled = UsesRenoDXCreativeGrading,
         .parse = [](float value) { return value * 0.02f; },
         .is_visible = []() { return current_settings_mode >= 1.f; },
     },
@@ -236,6 +300,7 @@ renodx::utils::settings::Settings settings = {
         .label = "Shadows",
         .section = "Color Grading",
         .max = 100.f,
+        .is_enabled = UsesRenoDXCreativeGrading,
         .parse = [](float value) { return value * 0.02f; },
         .is_visible = []() { return current_settings_mode >= 1.f; },
     },
@@ -246,6 +311,7 @@ renodx::utils::settings::Settings settings = {
         .label = "Contrast",
         .section = "Color Grading",
         .max = 100.f,
+        .is_enabled = UsesRenoDXCreativeGrading,
         .parse = [](float value) { return value * 0.02f; },
     },
     new renodx::utils::settings::Setting{
@@ -255,6 +321,7 @@ renodx::utils::settings::Settings settings = {
         .label = "Saturation",
         .section = "Color Grading",
         .max = 100.f,
+        .is_enabled = UsesRenoDXCreativeGrading,
         .parse = [](float value) { return value * 0.02f; },
     },
     new renodx::utils::settings::Setting{
@@ -264,6 +331,7 @@ renodx::utils::settings::Settings settings = {
         .label = "Highlight Saturation",
         .section = "Color Grading",
         .max = 100.f,
+        .is_enabled = UsesRenoDXExtendedControls,
         .parse = [](float value) { return value * 0.02f; },
         .is_visible = []() { return current_settings_mode >= 1.f; },
     },
@@ -274,6 +342,7 @@ renodx::utils::settings::Settings settings = {
         .label = "Highlight Desaturation",
         .section = "Color Grading",
         .max = 100.f,
+        .is_enabled = UsesRenoDXExtendedControls,
         .parse = [](float value) { return value * 0.01f; },
         .is_visible = []() { return current_settings_mode >= 1.f; },
     },
@@ -285,7 +354,10 @@ renodx::utils::settings::Settings settings = {
         .section = "Color Grading",
         .tooltip = "Adds a soft shadow toe. Ignored while Override Black Clip is enabled.",
         .max = 100.f,
-        .is_enabled = []() { return shader_injection.override_black_clip == 0.f; },
+        .is_enabled = []() {
+          return shader_injection.override_black_clip == 0.f
+                 && UsesRenoDXExtendedControls();
+        },
         .parse = [](float value) { return value * 0.02f; },
         .is_visible = []() { return current_settings_mode >= 1.f; },
     },
@@ -297,6 +369,7 @@ renodx::utils::settings::Settings settings = {
         .label = "Tone Map Scaling",
         .section = "Tone Mapping",
         .labels = {"Luminance", "Per Channel"},
+        .is_enabled = UsesRenoDXExtendedControls,
         .is_visible = []() { return current_settings_mode >= 1.f; },
     },
 };
@@ -307,6 +380,9 @@ void OnPresetOff() {
   renodx::utils::settings::UpdateSetting("ToneMapGameNits", 203.f);
   renodx::utils::settings::UpdateSetting("ToneMapUINits", 203.f);
   renodx::utils::settings::UpdateSetting("GammaCorrection", 0.f);
+  renodx::utils::settings::UpdateSetting("ColorGradeConeResponse", 50.f);
+  renodx::utils::settings::UpdateSetting("ToneMapPsychoVExposureMatch", 1.f);
+  renodx::utils::settings::UpdateSetting("ToneMapPsychoVVanillaHDRSlope", 100.f);
   renodx::utils::settings::UpdateSetting("OverrideBlackClip", 0.f);
   renodx::utils::settings::UpdateSetting("BloomIntensity", 100.f);
   renodx::utils::settings::UpdateSetting("LensDirtAmount", 100.f);
